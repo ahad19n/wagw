@@ -1,10 +1,13 @@
 {
   "name": "wagw",
-  "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon --env-file-if-exists=.env src/server.js",
+    "start": "node --env-file-if-exists=.env src/server.js"
   },
   "dependencies": {
     "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
   }
 }

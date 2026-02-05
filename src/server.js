@@ -24,21 +24,21 @@ client.on('ready', () => {
 client.initialize();
 
 app.post('/send', async (req, res) => {
-  const { phone, message } = req.body;
+  const { number, message } = req.body;
 
-  if (!phone || !message) {
+  if (!number || !message) {
     return res.status(400).json({
-      error: 'phone and message are required'
+      error: 'number and message are required'
     });
   }
 
   try {
-    const chatId = `${phone}@c.us`;
+    const chatId = `${number}@c.us`;
     await client.sendMessage(chatId, message);
 
     res.json({
       success: true,
-      phone,
+      number,
       message
     });
   } catch (err) {

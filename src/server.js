@@ -9,20 +9,41 @@ app.use(express.json());
 
 // -------------------------------------------------------------------------- //
 
+let isClientReady = false;
+
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: '/data' }),
   puppeteer: { args: [ '--no-sandbox', '--disable-setuid-sandbox' ]}
 });
 
-client.on('qr', (qr) => qrcode.generate(qr, { small: true }));
-client.on('ready', () => console.log('[INFO] event: ready'));
+client.on('qr', (qr) => {
+  qrcode.generate(qr, { small: true });
+});
+
+client.on('ready', () => {
+  isClientReady = true;
+  console.log('[INFO] event: ready');
+});
+
+client.on('disconnected', () => {
+  isClientReady = false;
+  console.log('[INFO] event: disconnected');
+});
 
 client.initialize();
 
 // -------------------------------------------------------------------------- //
 
+app.get('/health', (req, res) => {
+  res.sendStatus(isClientReady ? 200 : 503);
+});
+
 app.post('/send', async (req, res) => {
   const { number, message } = req.body;
+
+  if (!isClientReady) {
+    return resp(res, 503, 'WhatsApp client not ready');
+  }
 
   if (!number || !message) {
     return resp(res, 400, 'Missing or empty fields (number, message)');

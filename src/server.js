@@ -1,27 +1,33 @@
 const express = require('express');
-const qrcode = require('qrcode-terminal');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 
 const app = express();
 app.use(express.json());
 
+// -------------------------------------------------------------------------- //
+
 const client = new Client({
-  authStrategy: new LocalAuth(),
+  authStrategy: new LocalAuth({ dataPath: '/data' }),
   puppeteer: {
-    args: [ '--no-sandbox', '--disable-setuid-sandbox' ]
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
   }
 });
 
-client.on('qr', (qr) => {
-  console.log('[INFO] Scan this QR code to log in:');
-  qrcode.generate(qr, { small: true });
-});
-
-client.on('ready', () => {
-  console.log('[INFO] WhatsApp client is ready');
-});
+client.on('ready', () => console.log('[INFO] event: ready'));
+client.on('authenticated', () => console.log('[INFO] event: authenticated'));
+client.on('change_state', (state) => console.log(`[INFO] event: change_state: ${state}`));
+client.on('disconnected', (reason) => console.log(`[INFO] event: disconnected: ${reason}`));
+client.on('auth_failure', (message) => console.log(`[ERROR] event: auth_failure: ${message}`));
 
 client.initialize();
+
+// -------------------------------------------------------------------------- //
+
+app.post('/connect', async (req, res) => {
+  const { number } = req.body;
+  const code = await client.requestPairingCode(number);
+  return res.json({ code });
+});
 
 app.post('/send', async (req, res) => {
   const { number, message } = req.body;

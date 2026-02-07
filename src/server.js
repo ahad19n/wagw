@@ -31,7 +31,7 @@ const app = express();
 app.use(express.json());
 
 app.post('/send', apiKeyAuth, async (req, res) => {
-  const { number, message } = req.body;
+  const { number, message } = req.body || {};
 
   if (!number || !message) {
     return resp(res, 400, 'Missing or empty fields (number, message)');

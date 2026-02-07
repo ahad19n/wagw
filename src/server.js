@@ -1,19 +1,14 @@
 const express = require('express');
 const qrcode = require('qrcode-terminal');
+
 const { Client, LocalAuth } = require('whatsapp-web.js');
-
-const { resp } = require('./helpers');
-
-const app = express();
-app.use(express.json());
+const { resp, apiKeyAuth, gracefulShutdown } = require('./helpers');
 
 // -------------------------------------------------------------------------- //
 
-let isClientReady = false;
-
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: '/data' }),
-  puppeteer: { args: [ '--no-sandbox', '--disable-setuid-sandbox' ]}
+  puppeteer: { args: ['--no-sandbox', '--disable-setuid-sandbox'] }
 });
 
 client.on('qr', (qr) => {
@@ -21,12 +16,10 @@ client.on('qr', (qr) => {
 });
 
 client.on('ready', () => {
-  isClientReady = true;
   console.log('[INFO] event: ready');
 });
 
 client.on('disconnected', () => {
-  isClientReady = false;
   console.log('[INFO] event: disconnected');
 });
 
@@ -34,16 +27,11 @@ client.initialize();
 
 // -------------------------------------------------------------------------- //
 
-app.get('/health', (req, res) => {
-  res.sendStatus(isClientReady ? 200 : 503);
-});
+const app = express();
+app.use(express.json());
 
-app.post('/send', async (req, res) => {
+app.post('/send', apiKeyAuth, async (req, res) => {
   const { number, message } = req.body;
-
-  if (!isClientReady) {
-    return resp(res, 503, 'WhatsApp client not ready');
-  }
 
   if (!number || !message) {
     return resp(res, 400, 'Missing or empty fields (number, message)');
@@ -52,7 +40,7 @@ app.post('/send', async (req, res) => {
   try {
     const chatId = `${number}@c.us`;
     await client.sendMessage(chatId, message);
-    return resp(res, 200, 'Successfully sent message.');
+    return resp(res, 200, 'Message send successfully');
   }
 
   catch (err) {
@@ -61,6 +49,11 @@ app.post('/send', async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT || 3000, () => {
+// -------------------------------------------------------------------------- //
+
+const server = app.listen(process.env.PORT || 3000, () => {
   console.log('[INFO] Server listening on port', process.env.PORT || 3000);
 });
+
+process.on('SIGINT', () => gracefulShutdown(server));
+process.on('SIGTERM', () => gracefulShutdown(server));

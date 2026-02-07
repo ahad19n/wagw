@@ -7,20 +7,18 @@ exports.resp = (res, code, message, data = {}) => {
 };
 
 exports.apiKeyAuth = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  const { api_key } = req.query;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return exports.resp(res, 401, 'Missing or invalid Authorization header');
+  if (!api_key) {
+    return exports.resp(res, 401, 'Missing API key');
   }
 
-  const token = authHeader.split(' ')[1];
-
-  if (!token || token.length !== 32 || token !== process.env.API_KEY) {
+  if (api_key.length !== 32 || api_key !== process.env.API_KEY) {
     return exports.resp(res, 403, 'Invalid API key');
   }
 
   next();
-}
+};
 
 exports.gracefulShutdown = async () => {
   console.log(`[INFO] Shutting down gracefully...`);
